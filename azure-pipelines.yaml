@@ -1,0 +1,44 @@
+variables:
+  AzureSubscription: '<SERVICE_CONNECTION_NAME>'
+  ResourceGroupName: '<RESOURCE_GROUP_NAME>'
+  ServerName: '<DATABASE_SERVER_NAME>'
+  ServerFqdn: '<DATABASE_FQDN>'
+  DatabaseName: '<DATABASE_NAME>'
+  AdminUser: '<DATABASE_USERNAME>'
+  AdminPassword: '<DATABASE_PASSWORD>'
+  SQLFile: '<LOCATION_OF_SQL_FILE_IN_$(Build.SourcesDirectory)>'
+
+steps:
+- task: AzurePowerShell@5
+  displayName: 'Azure PowerShell script'
+  inputs:
+    azureSubscription: '$(AzureSubscription)'
+    ScriptType: filePath
+    ScriptPath: '$(Build.SourcesDirectory)\scripts\SetAzureFirewallRule.ps1'
+    ScriptArguments: '-ServerName $(ServerName) -ResourceGroupName $(ResourceGroupName)'
+    azurePowerShellVersion: LatestVersion
+
+- task: PowerShell@2
+  inputs:
+    targetType: 'inline'
+    script: |
+      if (-not (Get-Module -ListAvailable -Name SqlServer)) {
+          Install-Module -Name SqlServer -Force -AllowClobber
+      }
+  displayName: 'Install SqlServer module if not present'
+
+- task: PowerShell@2
+  inputs:
+    targetType: 'inline'
+    script: |
+      Invoke-Sqlcmd -InputFile $(SQLFile) -ServerInstance $(ServerFqdn) -Database $(DatabaseName) -Username $(AdminUser) -Password $(AdminPassword)
+  displayName: 'Run SQL script'
+
+- task: AzurePowerShell@5
+  displayName: 'Azure PowerShell script'
+  inputs:
+    azureSubscription: '$(AzureSubscription)'
+    ScriptType: filePath
+    ScriptPath: '$(Build.SourcesDirectory)\scripts\RemoveAzureFirewallRule.ps1'
+    ScriptArguments: '-ServerName $(ServerName) -ResourceGroupName $(ResourceGroupName)'
+    azurePowerShellVersion: LatestVersion
