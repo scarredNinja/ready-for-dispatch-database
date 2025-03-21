@@ -1,6 +1,4 @@
-# assessment-database
- 
- ## Dispatch Database
+# Dispatch Database
 
  Uses an Azure Pipeline to deploy an instance of SQL Server and then uses the 001_CREATE_DATABASE.sql script to create:
 
